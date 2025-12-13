@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>NPC Backlog & Capacity Dashboard</title>
+
+    <!-- React + ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Babel compiler -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Recharts -->
+    <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
+
+    <!-- Minimal styling -->
+    <style>
+      body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: white;
+        padding: 20px;
+      }
+      .container {
+        max-width: 1100px;
+        margin: auto;
+      }
+      .card {
+        border: 1px solid #ddd;
+        padding: 20px;
+        border-radius: 6px;
+        background: #fff;
+        margin-bottom: 25px;
+      }
+      input {
+        width: 100%;
+        padding: 6px;
+        margin-top: 4px;
+        margin-bottom: 10px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        padding: 8px;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+      }
+      th { background: #f3f3f3; }
+      .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+      .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+      .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    </style>
+  </head>
+
+  <body>
+    <div id="root"></div>
+
+    <!-- MAIN DASHBOARD CODE -->
+    <script type="text/babel">
+
+      const {
+        LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
+        ResponsiveContainer, Legend
+      } = Recharts;
+
+      const MONTHS =
