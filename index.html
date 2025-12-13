@@ -1,243 +1,63 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<title>NPC Backlog & Capacity Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-
-<!-- Tailwind CDN -->
-<script src="https://cdn.tailwindcss.com"></script>
-
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+  <meta charset="UTF-8" />
+  <title>NPC Backlog & Capacity Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input { padding:5px; margin:4px; width:120px; }
+    .box { border:1px solid #ccc; padding:15px; margin-bottom:20px; border-radius:8px; }
+  </style>
 </head>
+<body>
+<h1>NPC Backlog & Capacity Dashboard</h1>
 
-<body class="bg-gray-50 font-sans p-6">
-
-<h1 class="text-3xl font-bold mb-6 text-gray-800">
-  NPC Backlog & Capacity Dashboard
-</h1>
-
-<!-- ---------------- BACKLOG INPUTS ---------------- -->
-<div class="grid md:grid-cols-3 gap-4 mb-6">
-
-  <div class="bg-white p-4 shadow rounded">
-    <h3 class="font-semibold mb-2">Backlog Inputs</h3>
-
-    <label class="text-sm">Current Backlog</label>
-    <input id="currentBacklog" type="number" class="w-full p-2 border rounded mb-2" value="545"/>
-
-    <label class="text-sm">Future Inflow (Jan–Jun)</label>
-    <input id="futureInflow" type="number" class="w-full p-2 border rounded" value="404"/>
-
-    <p class="text-sm mt-2">Monthly Created: <b id="monthlyCreated">0</b></p>
-  </div>
-
-  <div class="bg-white p-4 shadow rounded">
-    <h3 class="font-semibold mb-2">Capacity</h3>
-
-    <label class="text-sm">Monthly Capacity</label>
-    <input id="capacity" type="number" class="w-full p-2 border rounded" value="225"/>
-  </div>
-
-  <div class="bg-white p-4 shadow rounded">
-    <h3 class="font-semibold mb-2">Commitments</h3>
-
-    <label class="text-sm">NPC</label>
-    <input id="commitNpc" type="number" class="w-full p-2 border rounded mb-2" value="110"/>
-
-    <label class="text-sm">Yardi</label>
-    <input id="commitYardi" type="number" class="w-full p-2 border rounded mb-2" value="34"/>
-
-    <label class="text-sm">Manual → Automation</label>
-    <input id="commitM2A" type="number" class="w-full p-2 border rounded" value="20"/>
-  </div>
-
+<div class="box">
+  <h3>Backlog Inputs</h3>
+  Current Backlog: <input id="currentBacklog" type="number" value="545"><br>
+  Future Inflow (Jan–Jun): <input id="futureInflow" type="number" value="404"><br>
+  Capacity: <input id="capacity" type="number" value="225"><br>
+  <button onclick="updateChart()">Update Forecast</button>
 </div>
 
-<!-- ---------------- BACKLOG TYPE ---------------- -->
-<div class="bg-white p-4 shadow rounded mb-6">
-  <h3 class="font-semibold mb-2">Backlog Type</h3>
-
-  <div class="grid md:grid-cols-4 gap-4">
-    <div>
-      <label class="text-sm">NPC (Firm)</label>
-      <input id="npcBacklog" type="number" class="w-full p-2 border rounded" value="172"/>
-    </div>
-
-    <div>
-      <label class="text-sm">Customer Dependency (Unfirm)</label>
-      <input id="customerDep" type="number" class="w-full p-2 border rounded" value="54"/>
-    </div>
-
-    <div>
-      <label class="text-sm">Manual → Automation</label>
-      <input id="m2aBacklog" type="number" class="w-full p-2 border rounded" value="113"/>
-    </div>
-
-    <div>
-      <label class="text-sm">UDS → Plug</label>
-      <input id="udsBacklog" type="number" class="w-full p-2 border rounded" value="206"/>
-    </div>
-  </div>
-
-  <p class="mt-3 text-sm">Weighted Unfirm: <b id="weightedUnfirm">0</b></p>
-  <p class="text-sm">Total Starting Backlog: <b id="totalStartBacklog">0</b></p>
-</div>
-
-<!-- ---------------- MONTHLY SIMULATION ---------------- -->
-<div class="bg-white p-4 shadow rounded mb-6">
-  <h3 class="font-semibold mb-3">Monthly Simulation</h3>
-
-  <table class="w-full text-sm">
-    <thead>
-      <tr class="border-b">
-        <th class="p-2">Month</th>
-        <th class="p-2">NPC</th>
-        <th class="p-2">Yardi</th>
-        <th class="p-2">M2A</th>
-        <th class="p-2">Prospect</th>
-        <th class="p-2">Total</th>
-      </tr>
-    </thead>
-    <tbody id="simTable"></tbody>
-  </table>
-</div>
-
-<!-- ---------------- FORECAST CHART ---------------- -->
-<div class="bg-white p-4 shadow rounded mb-6">
-  <h3 class="font-semibold mb-2">6-Month Forecast</h3>
-
-  <canvas id="forecastChart" height="120"></canvas>
-
-  <p class="mt-3 text-sm">Projected Backlog End of June:
-    <b id="endBacklog"></b>
-  </p>
-</div>
+<canvas id="forecastChart" height="120"></canvas>
 
 <script>
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+function updateChart() {
+    const months = ["Jan","Feb","Mar","Apr","May","Jun"];
+    const backlog = Number(document.getElementById("currentBacklog").value);
+    const inflow = Number(document.getElementById("futureInflow").value);
+    const cap = Number(document.getElementById("capacity").value);
 
-function num(v) { return Number(v) || 0; }
+    const monthlyCreated = Math.round(inflow / 6);
 
-// ---------------- TABLE SETUP ----------------
-function loadSimTable() {
-  const table = document.getElementById("simTable");
-  table.innerHTML = "";
-
-  MONTHS.forEach((m) => {
-    table.innerHTML += `
-      <tr class="border-b">
-        <td class="p-2">${m}</td>
-        <td class="p-2"><input class="border p-1 w-20 sim" data-m="${m}" data-k="npc" value="110"></td>
-        <td class="p-2"><input class="border p-1 w-20 sim" data-m="${m}" data-k="yardi" value="34"></td>
-        <td class="p-2"><input class="border p-1 w-20 sim" data-m="${m}" data-k="m2a" value="20"></td>
-        <td class="p-2"><input class="border p-1 w-20 sim" data-m="${m}" data-k="prospect" value="67"></td>
-        <td class="p-2 font-bold" id="total-${m}">231</td>
-      </tr>`;
-  });
-}
-loadSimTable();
-
-document.addEventListener("input", updateAll);
-
-// ---------------- MAIN UPDATE FUNCTION ----------------
-function updateAll() {
-  updateBacklogType();
-  updateMonthlyCreated();
-  updateSimulationTotals();
-  updateForecast();
-}
-
-// ---------------- BACKLOG TYPE ----------------
-function updateBacklogType() {
-  const customer = num(document.getElementById("customerDep").value);
-  const npc = num(document.getElementById("npcBacklog").value);
-  const m2a = num(document.getElementById("m2aBacklog").value);
-  const uds = num(document.getElementById("udsBacklog").value);
-
-  const weighted = Math.round(customer * 0.6);
-  const total = npc + m2a + uds + weighted;
-
-  document.getElementById("weightedUnfirm").textContent = weighted;
-  document.getElementById("totalStartBacklog").textContent = total;
-}
-
-// ---------------- MONTHLY CREATED ----------------
-function updateMonthlyCreated() {
-  const inflow = num(document.getElementById("futureInflow").value);
-  document.getElementById("monthlyCreated").textContent = Math.round(inflow / 6);
-}
-
-// ---------------- MONTHLY SIMULATION TOTALS ----------------
-function updateSimulationTotals() {
-  const inputs = document.querySelectorAll(".sim");
-
-  let groups = {};
-  inputs.forEach(inp => {
-    const m = inp.dataset.m;
-    const k = inp.dataset.k;
-
-    if (!groups[m]) groups[m] = { npc: 0, yardi: 0, m2a: 0, prospect: 0 };
-
-    groups[m][k] = num(inp.value);
-  });
-
-  MONTHS.forEach(m => {
-    const g = groups[m];
-    const total = g.npc + g.yardi + g.m2a + g.prospect;
-    document.getElementById(`total-${m}`).textContent = total;
-  });
-}
-
-// ---------------- FORECAST CHART ----------------
-let chart;
-
-function updateForecast() {
-  const start = num(document.getElementById("currentBacklog").value);
-  const monthlyCreated = num(document.getElementById("monthlyCreated").textContent);
-  const capacity = num(document.getElementById("capacity").value);
-
-  let listStart = [];
-  let listEnd = [];
-
-  let curr = start;
-
-  for (let i = 0; i < 6; i++) {
-    listStart.push(curr);
-    const end = Math.max(0, curr + monthlyCreated - capacity);
-    listEnd.push(end);
-    curr = end;
-  }
-
-  document.getElementById("endBacklog").textContent = listEnd[5];
-
-  if (chart) chart.destroy();
-
-  chart = new Chart(document.getElementById("forecastChart"), {
-    type: "line",
-    data: {
-      labels: MONTHS,
-      datasets: [
-        {
-          label: "Start Backlog",
-          data: listStart,
-          borderColor: "black",
-          borderWidth: 2
-        },
-        {
-          label: "End Backlog",
-          data: listEnd,
-          borderColor: "red",
-          borderWidth: 2
-        }
-      ]
+    let start = backlog;
+    let starts=[], creates=[], caps=[];
+    for (let i=0;i<6;i++){
+        starts.push(start);
+        creates.push(monthlyCreated);
+        caps.push(cap);
+        start = Math.max(0, start + monthlyCreated - cap);
     }
-  });
+
+    if (window.chartRef) window.chartRef.destroy();
+
+    const ctx = document.getElementById("forecastChart").getContext("2d");
+    window.chartRef = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: months,
+            datasets: [
+                {label:"Start Backlog", data: starts, borderColor:"black"},
+                {label:"Created", data: creates, borderColor:"blue"},
+                {label:"Capacity", data: caps, borderColor:"green"}
+            ]
+        }
+    });
 }
 
-updateAll();
+updateChart();
 </script>
 
 </body>
